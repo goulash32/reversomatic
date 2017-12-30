@@ -14,6 +14,7 @@ import { createReadStream,
          readFileSync,
          mkdtemp 
         } from 'fs'
+import { setTimeout } from 'timers';
 
 class GifReverseResult {
     path: string
@@ -55,64 +56,70 @@ export class Reversomatic {
     }
 
     processGif(inputFilename: string, outputFilename:string, options: GifReverseOptions, callback) {
-        let gifFile: Buffer
+        setTimeout( () => {
+            let gifFile: Buffer
 
-        try {
-            gifFile = readFileSync(inputFilename)
-        } 
-        catch(err) {
-            return callback(err, null)
-        }
+            try {
+                gifFile = readFileSync(inputFilename)
+            } 
+            catch(err) {
+                return callback(err, null)
+            }
 
-        let gifInfo = getInfo(gifFile)
+            let gifInfo = getInfo(gifFile)
 
-        if(!gifInfo.valid) {
-            return callback(Error('Invalid GIF file.'), null)
-        }
+            if(!gifInfo.valid) {
+                return callback(Error('Invalid GIF file.'), null)
+            }
 
-        let gifDuration = gifInfo.isBrowserDuration ? gifInfo.duration : gifInfo.duration / 10
-        let gifFrameRate 
-        
-        if(options.averageFrameDuration) {
-            gifFrameRate = gifDuration / gifInfo.images.length
-        } else {
-            gifFrameRate = gifInfo.images[0].delay
-        }
+            let gifDuration = gifInfo.duration
+            let gifFrameRate = 0
+            
+            if(options.averageFrameDuration) {
+                for(let img of gifInfo.images) {
+                    gifFrameRate += img.delay
+                }
 
-        if(gifDuration > this.maxDuration) {
-            return callback(Error(`GIF duration longer than max duration of ${ this.maxDuration } milliseconds.`), null)
-        }
+                gifFrameRate = gifFrameRate / gifInfo.images.length
+            } else {
+                gifFrameRate = gifInfo.images[0].delay
+            }
 
-        let tempFolderPfx = join(this.tempDirectory, 'processGif')
-        mkdtemp(tempFolderPfx, 'utf8', (err, folder) => {
-            if(err) return callback(Error(`Unable to create temporary directory for gif: ${ err.message }`), null)
+            if(gifDuration > this.maxDuration) {
+                return callback(Error(`GIF duration longer than max duration of ${ this.maxDuration } milliseconds.`), null)
+            }
 
-            gf({ url: inputFilename, frames: 'all', outputType: 'png', cumulative: true }).then(frames => {
-                let imgPrefix = join(folder, 'image')
-                this.chainProcessImages(frames, frames.length - 1, imgPrefix, () => {
-                    let encoder = new ge(gifInfo.width, gifInfo.height)
-                    let ws = createWriteStream(join(this.outputDirectory, outputFilename))
+            let tempFolderPfx = join(this.tempDirectory, 'processGif')
+            mkdtemp(tempFolderPfx, 'utf8', (err, folder) => {
+                if(err) return callback(Error(`Unable to create temporary directory for gif: ${ err.message }`), null)
 
-                    // string of '?' chars for glob in pngFileStream
-                    let globChars = Array(this.getFrameCountDigits(frames) + 1).join('?')
-                    pfs(`${ imgPrefix + globChars }.png`)
-                        .pipe(encoder.createWriteStream({ delay: gifFrameRate, repeat: 0, quality: 100 }))
-                        .pipe(ws)
-                    ws.on('finish', () => {
-                        rimraf(folder, err => {
-                            if(err) return callback(Error(`Unable to remove temporary folder ${ folder }.`), null)
-                            let fullPath = join(this.outputDirectory, outputFilename)
-                            return callback(null, new GifReverseResult(fullPath, gifFrameRate, gifDuration))  
+                gf({ url: inputFilename, frames: 'all', outputType: 'png', cumulative: true }).then(frames => {
+                    let imgPrefix = join(folder, 'image')
+                    this.chainProcessImages(frames, frames.length - 1, imgPrefix, () => {
+                        let encoder = new ge(gifInfo.width, gifInfo.height)
+                        let ws = createWriteStream(join(this.outputDirectory, outputFilename))
+
+                        // string of '?' chars for glob in pngFileStream
+                        let globChars = Array(this.getFrameCountDigits(frames) + 1).join('?')
+                        pfs(`${ imgPrefix + globChars }.png`)
+                            .pipe(encoder.createWriteStream({ delay: gifFrameRate, repeat: 0, quality: 100 }))
+                            .pipe(ws)
+                        ws.on('finish', () => {
+                            rimraf(folder, err => {
+                                if(err) return callback(Error(`Unable to remove temporary folder ${ folder }.`), null)
+                                let fullPath = join(this.outputDirectory, outputFilename)
+                                return callback(null, new GifReverseResult(fullPath, gifFrameRate, gifDuration))  
+                            })
                         })
-                    })
-                    ws.on('error', () => {
-                        rimraf(folder, err => {
-                            return callback(Error(`Unable to write reversed GIF to ${ outputFilename }.`), null)
+                        ws.on('error', () => {
+                            rimraf(folder, err => {
+                                return callback(Error(`Unable to write reversed GIF to ${ outputFilename }.`), null)
+                            })
                         })
                     })
                 })
-            })
-        })  
+            }) 
+        }, 10) 
     }
 
     private verifyAndCreateDirs() {

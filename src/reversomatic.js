@@ -8,6 +8,7 @@ var gify_parse_1 = require("gify-parse");
 var rimraf = require("rimraf");
 var path_1 = require("path");
 var fs_1 = require("fs");
+var timers_1 = require("timers");
 var GifReverseResult = /** @class */ (function () {
     function GifReverseResult(path, frameRate, duration) {
         this.path = path;
@@ -56,58 +57,64 @@ var Reversomatic = /** @class */ (function () {
     }
     Reversomatic.prototype.processGif = function (inputFilename, outputFilename, options, callback) {
         var _this = this;
-        var gifFile;
-        try {
-            gifFile = fs_1.readFileSync(inputFilename);
-        }
-        catch (err) {
-            return callback(err, null);
-        }
-        var gifInfo = gify_parse_1.getInfo(gifFile);
-        if (!gifInfo.valid) {
-            return callback(Error('Invalid GIF file.'), null);
-        }
-        var gifDuration = gifInfo.isBrowserDuration ? gifInfo.duration : gifInfo.duration / 10;
-        var gifFrameRate;
-        if (options.averageFrameDuration) {
-            gifFrameRate = gifDuration / gifInfo.images.length;
-        }
-        else {
-            gifFrameRate = gifInfo.images[0].delay;
-        }
-        if (gifDuration > this.maxDuration) {
-            return callback(Error("GIF duration longer than max duration of " + this.maxDuration + " milliseconds."), null);
-        }
-        var tempFolderPfx = path_1.join(this.tempDirectory, 'processGif');
-        fs_1.mkdtemp(tempFolderPfx, 'utf8', function (err, folder) {
-            if (err)
-                return callback(Error("Unable to create temporary directory for gif: " + err.message), null);
-            gf({ url: inputFilename, frames: 'all', outputType: 'png', cumulative: true }).then(function (frames) {
-                var imgPrefix = path_1.join(folder, 'image');
-                _this.chainProcessImages(frames, frames.length - 1, imgPrefix, function () {
-                    var encoder = new ge(gifInfo.width, gifInfo.height);
-                    var ws = fs_1.createWriteStream(path_1.join(_this.outputDirectory, outputFilename));
-                    // string of '?' chars for glob in pngFileStream
-                    var globChars = Array(_this.getFrameCountDigits(frames) + 1).join('?');
-                    pfs(imgPrefix + globChars + ".png")
-                        .pipe(encoder.createWriteStream({ delay: gifFrameRate, repeat: 0, quality: 100 }))
-                        .pipe(ws);
-                    ws.on('finish', function () {
-                        rimraf(folder, function (err) {
-                            if (err)
-                                return callback(Error("Unable to remove temporary folder " + folder + "."), null);
-                            var fullPath = path_1.join(_this.outputDirectory, outputFilename);
-                            return callback(null, new GifReverseResult(fullPath, gifFrameRate, gifDuration));
+        timers_1.setTimeout(function () {
+            var gifFile;
+            try {
+                gifFile = fs_1.readFileSync(inputFilename);
+            }
+            catch (err) {
+                return callback(err, null);
+            }
+            var gifInfo = gify_parse_1.getInfo(gifFile);
+            if (!gifInfo.valid) {
+                return callback(Error('Invalid GIF file.'), null);
+            }
+            var gifDuration = gifInfo.duration;
+            var gifFrameRate = 0;
+            if (options.averageFrameDuration) {
+                for (var _i = 0, _a = gifInfo.images; _i < _a.length; _i++) {
+                    var img = _a[_i];
+                    gifFrameRate += img.delay;
+                }
+                gifFrameRate = gifFrameRate / gifInfo.images.length;
+            }
+            else {
+                gifFrameRate = gifInfo.images[0].delay;
+            }
+            if (gifDuration > _this.maxDuration) {
+                return callback(Error("GIF duration longer than max duration of " + _this.maxDuration + " milliseconds."), null);
+            }
+            var tempFolderPfx = path_1.join(_this.tempDirectory, 'processGif');
+            fs_1.mkdtemp(tempFolderPfx, 'utf8', function (err, folder) {
+                if (err)
+                    return callback(Error("Unable to create temporary directory for gif: " + err.message), null);
+                gf({ url: inputFilename, frames: 'all', outputType: 'png', cumulative: true }).then(function (frames) {
+                    var imgPrefix = path_1.join(folder, 'image');
+                    _this.chainProcessImages(frames, frames.length - 1, imgPrefix, function () {
+                        var encoder = new ge(gifInfo.width, gifInfo.height);
+                        var ws = fs_1.createWriteStream(path_1.join(_this.outputDirectory, outputFilename));
+                        // string of '?' chars for glob in pngFileStream
+                        var globChars = Array(_this.getFrameCountDigits(frames) + 1).join('?');
+                        pfs(imgPrefix + globChars + ".png")
+                            .pipe(encoder.createWriteStream({ delay: gifFrameRate, repeat: 0, quality: 100 }))
+                            .pipe(ws);
+                        ws.on('finish', function () {
+                            rimraf(folder, function (err) {
+                                if (err)
+                                    return callback(Error("Unable to remove temporary folder " + folder + "."), null);
+                                var fullPath = path_1.join(_this.outputDirectory, outputFilename);
+                                return callback(null, new GifReverseResult(fullPath, gifFrameRate, gifDuration));
+                            });
                         });
-                    });
-                    ws.on('error', function () {
-                        rimraf(folder, function (err) {
-                            return callback(Error("Unable to write reversed GIF to " + outputFilename + "."), null);
+                        ws.on('error', function () {
+                            rimraf(folder, function (err) {
+                                return callback(Error("Unable to write reversed GIF to " + outputFilename + "."), null);
+                            });
                         });
                     });
                 });
             });
-        });
+        }, 10);
     };
     Reversomatic.prototype.verifyAndCreateDirs = function () {
         var _this = this;
