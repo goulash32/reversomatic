@@ -29,7 +29,7 @@ class GifReverseResult {
 }
 
 interface GifReverseOptions {
-    averageFrameDuration?: boolean
+    averageFrameDelay?: boolean
 }
 
 export class Reversomatic {
@@ -55,7 +55,7 @@ export class Reversomatic {
         this.verifyAndCreateDirs();
     }
 
-    processGif(inputFilename: string, outputFilename:string, options: GifReverseOptions, callback) {
+    processGif(inputFilename: string, outputFilename: string, options: GifReverseOptions, callback) {
         setTimeout( () => {
             let gifFile: Buffer
 
@@ -66,17 +66,17 @@ export class Reversomatic {
                 return callback(err, null)
             }
 
-            let gifInfo = getInfo(gifFile)
+            const gifInfo = getInfo(gifFile)
 
             if(!gifInfo.valid) {
                 return callback(Error('Invalid GIF file.'), null)
             }
 
-            let gifDuration = gifInfo.duration
+            const gifDuration = gifInfo.duration
             let gifFrameRate = 0
             
-            if(options.averageFrameDuration) {
-                for(let img of gifInfo.images) {
+            if(options.averageFrameDelay) {
+                for(const img of gifInfo.images) {
                     gifFrameRate += img.delay
                 }
 
@@ -94,20 +94,22 @@ export class Reversomatic {
                 if(err) return callback(Error(`Unable to create temporary directory for gif: ${ err.message }`), null)
 
                 gf({ url: inputFilename, frames: 'all', outputType: 'png', cumulative: true }).then(frames => {
-                    let imgPrefix = join(folder, 'image')
+                    const imgPrefix = join(folder, 'image')
                     this.chainProcessImages(frames, frames.length - 1, imgPrefix, () => {
-                        let encoder = new ge(gifInfo.width, gifInfo.height)
-                        let ws = createWriteStream(join(this.outputDirectory, outputFilename))
+                        const encoder = new ge(gifInfo.width, gifInfo.height)
+                        const ws = createWriteStream(join(this.outputDirectory, outputFilename))
 
                         // string of '?' chars for glob in pngFileStream
-                        let globChars = Array(this.getFrameCountDigits(frames) + 1).join('?')
+                        const globChars = Array(this.getFrameCountDigits(frames) + 1).join('?')
                         pfs(`${ imgPrefix + globChars }.png`)
                             .pipe(encoder.createWriteStream({ delay: gifFrameRate, repeat: 0, quality: 100 }))
                             .pipe(ws)
                         ws.on('finish', () => {
                             rimraf(folder, err => {
                                 if(err) return callback(Error(`Unable to remove temporary folder ${ folder }.`), null)
-                                let fullPath = join(this.outputDirectory, outputFilename)
+
+                                const fullPath = join(this.outputDirectory, outputFilename)
+
                                 return callback(null, new GifReverseResult(fullPath, gifFrameRate, gifDuration))  
                             })
                         })
@@ -143,14 +145,14 @@ export class Reversomatic {
         
         // ensure an appropriate number of padding digits are available 
         // for glob bulk read during gif reversal
-        let frameCountDigits = this.getFrameCountDigits(frames)
-        let paddingZeros: string = Array(frameCountDigits + 1).join('0')
+        const frameCountDigits = this.getFrameCountDigits(frames)
+        const paddingZeros: string = Array(frameCountDigits + 1).join('0')
 
-        let frameIndex = (paddingZeros + index).slice(-frameCountDigits)
-        let element = frames[frames.length - index - 1]
+        const frameIndex = (paddingZeros + index).slice(-frameCountDigits)
+        const element = frames[frames.length - index - 1]
         
-        let filename = `${ filePrefix }${ frameIndex }.png`
-        let wstr = createWriteStream(filename)
+        const filename = `${ filePrefix }${ frameIndex }.png`
+        const wstr = createWriteStream(filename)
         
         // recursively process the next frame of the GIF
         wstr.on('finish', () => {

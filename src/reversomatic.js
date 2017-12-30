@@ -71,7 +71,7 @@ var Reversomatic = /** @class */ (function () {
             }
             var gifDuration = gifInfo.duration;
             var gifFrameRate = 0;
-            if (options.averageFrameDuration) {
+            if (options.averageFrameDelay) {
                 for (var _i = 0, _a = gifInfo.images; _i < _a.length; _i++) {
                     var img = _a[_i];
                     gifFrameRate += img.delay;
