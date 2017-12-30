@@ -1,0 +1,45 @@
+{
+  "name": "reversomatic",
+  "version": "1.0.0",
+  "description": "a utility for reversing gifs",
+  "main": "index.js",
+  "scripts": {
+    "watch": "npm-watch",
+    "src_update": "npm run build",
+    "compiled": "npm run minify",
+    "build": "tsc",
+    "minify": "uglifyjs src/*.js -o lib/*.js -cm"
+  },
+  "watch": {
+    "src_update": {
+      "patterns": [
+        "src"
+      ],
+      "extensions": "ts"
+    },
+    "compiled": {
+      "patterns": [
+        "src"
+      ],
+      "extensions": "js"
+    }
+  },
+  "keywords": [
+    "gif",
+    "reverse"
+  ],
+  "author": "Hunter Mueller",
+  "license": "ISC",
+  "dependencies": {
+    "gif-frames": "^0.4.0",
+    "gifencoder": "^1.1.0",
+    "gify-parse": "^1.0.7",
+    "png-file-stream": "^1.0.0",
+    "rimraf": "^2.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^8.5.2",
+    "npm-watch": "^0.3.0",
+    "uglify-js": "^3.3.3"
+  }
+}
