@@ -18,12 +18,12 @@ import { setTimeout } from 'timers';
 
 class GifReverseResult {
     path: string
-    frameRate: number
+    frameDelay: number
     duration: number
 
-    constructor(path: string, frameRate: number, duration: number) {
+    constructor(path: string, frameDelay: number, duration: number) {
         this.path = path
-        this.frameRate = frameRate
+        this.frameDelay = frameDelay
         this.duration = duration
     }
 }
@@ -73,16 +73,16 @@ export class Reversomatic {
             }
 
             const gifDuration = gifInfo.duration
-            let gifFrameRate = 0
+            let gifFrameDelay = 0
             
             if(options.averageFrameDelay) {
                 for(const img of gifInfo.images) {
-                    gifFrameRate += img.delay
+                    gifFrameDelay += img.delay
                 }
 
-                gifFrameRate = gifFrameRate / gifInfo.images.length
+                gifFrameDelay = gifFrameDelay / gifInfo.images.length
             } else {
-                gifFrameRate = gifInfo.images[0].delay
+                gifFrameDelay = gifInfo.images[0].delay
             }
 
             if(gifDuration > this.maxDuration) {
@@ -102,7 +102,7 @@ export class Reversomatic {
                         // string of '?' chars for glob in pngFileStream
                         const globChars = Array(this.getFrameCountDigits(frames) + 1).join('?')
                         pfs(`${ imgPrefix + globChars }.png`)
-                            .pipe(encoder.createWriteStream({ delay: gifFrameRate, repeat: 0, quality: 100 }))
+                            .pipe(encoder.createWriteStream({ delay: gifFrameDelay, repeat: 0, quality: 100 }))
                             .pipe(ws)
                         ws.on('finish', () => {
                             rimraf(folder, err => {
@@ -110,7 +110,7 @@ export class Reversomatic {
 
                                 const fullPath = join(this.outputDirectory, outputFilename)
 
-                                return callback(null, new GifReverseResult(fullPath, gifFrameRate, gifDuration))  
+                                return callback(null, new GifReverseResult(fullPath, gifFrameDelay, gifDuration))  
                             })
                         })
                         ws.on('error', () => {
