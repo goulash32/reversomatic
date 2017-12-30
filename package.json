@@ -8,6 +8,7 @@
   },
   "main": "index.js",
   "scripts": {
+    "preinstall_global_dev": "npm install -g tsc uglify npm-watch",
     "watch": "npm-watch",
     "src_update": "npm run build",
     "compiled": "npm run minify",
