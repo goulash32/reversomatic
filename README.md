@@ -24,7 +24,7 @@ ro.processGif('image.gif', 'image-reversed.gif', {}, (err, gifInfo) => {
 ```
 
 # *processGif* Options
-Presently, the only option available is *"averageFrameDelay"* which, when set to *true*, averages the duration of all the input GIF's delays to calculate the framerate of the output GIF. When it is *false* (by default), the framerate of the first frame of the input GIF is used as the framerate of all the ouput GIF's frames.
+Presently, the only option available is *"averageFrameDelay"* which, when set to *true*, averages the delays of all the input GIF's frames to calculate the framerate of the output GIF. When it is *false* (by default), the framerate of the first frame of the input GIF is used as the framerate of all the ouput GIF's frames.
 
 # Known Bugs
 - Certain GIFs do not report the correct duration and/or framerate, and so may not display correctly.
