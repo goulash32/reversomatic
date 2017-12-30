@@ -1,6 +1,6 @@
 {
   "name": "reversomatic",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "a utility for reversing gifs",
   "repository": {
     "type": "git",
@@ -34,6 +34,7 @@
   ],
   "author": "Hunter Mueller",
   "license": "MIT",
+  "readme": "README.md",
   "dependencies": {
     "gif-frames": "^0.4.0",
     "gifencoder": "^1.1.0",
