@@ -20,7 +20,7 @@ var GifReverseResult = /** @class */ (function () {
 var Reversomatic = /** @class */ (function () {
     function Reversomatic(tempDirectory, outputDirectory, maxDurationInMilliseconds, maxSizeInMegabytes) {
         if (maxDurationInMilliseconds === void 0) { maxDurationInMilliseconds = 30000; }
-        if (maxSizeInMegabytes === void 0) { maxSizeInMegabytes = 10; }
+        if (maxSizeInMegabytes === void 0) { maxSizeInMegabytes = 0; }
         if (tempDirectory) {
             this.tempDirectory = tempDirectory;
         }

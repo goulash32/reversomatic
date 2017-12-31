@@ -39,7 +39,7 @@ export class Reversomatic {
     private maxDurationInMilliseconds: number
     private maxSizeInBytes: number
 
-    constructor(tempDirectory?: string, outputDirectory?: string, maxDurationInMilliseconds: number = 30000, maxSizeInMegabytes: number = 10) {
+    constructor(tempDirectory?: string, outputDirectory?: string, maxDurationInMilliseconds: number = 30000, maxSizeInMegabytes: number = 0) {
         if(tempDirectory) {
             this.tempDirectory = tempDirectory
         } else {

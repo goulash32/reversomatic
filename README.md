@@ -9,7 +9,7 @@ var Reversomatic = require('reversomatic')
 // Output Directory: ./out
 // Max Input GIF Duration (in milliseconds): 30000 (30 seconds)
 // Max Input GIF Size (in MB, 0 for unlimited): 25 MB
-// Defaults are ./temp, ./output, 30000ms, 10mb respectively
+// Defaults are ./temp, ./output, 30000ms, and unlimited, respectively
 var ro = new Reversomatic('./', './out', 30000, 25)
 
 // reverses a GIF file with arguments:
