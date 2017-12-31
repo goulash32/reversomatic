@@ -7,9 +7,10 @@ var Reversomatic = require('reversomatic')
 // creates a new instance of Reversomatic with:
 // Temp Directory: ./
 // Output Directory: ./out
-// Max Input GIF Duration: 30000ms (30 seconds)
-// Defaults are ./temp, ./output, 30000 respectively
-var ro = new Reversomatic('./', './out', 30000)
+// Max Input GIF Duration (in milliseconds): 30000 (30 seconds)
+// Max Input GIF Size (in MB, 0 for unlimited): 25 MB
+// Defaults are ./temp, ./output, 30000ms, 10mb respectively
+var ro = new Reversomatic('./', './out', 30000, 25)
 
 // reverses a GIF file with arguments:
 // Input File: image.gif
@@ -23,9 +24,35 @@ ro.processGif('image.gif', 'image-reversed.gif', {}, (err, gifInfo) => {
 })
 ```
 
-# *processGif* Options
+# Notes
+Reversomatic will create a temporary folder, inside the specified temp directory, for every call to *processGif()* with a valid input GIF. This folder is used to store the temporary frames (in .png format) of the input GIF during the reversal process. The folder will be cleaned up before control is passed to the callback provided to *processGif()*, whether the reversal was successful or otherwise. 
+
+Every call to *processGif()* runs asynchronously, and neither performs disk space checks nor keeps a 'thread pool' or similar mechanism. The responsibility falls to the user to ensure that usage is kept to within available system resources.
+
+# *processGif()* Options
 Presently, the only option available is *"averageFrameDelay"* which, when set to *true*, averages the delays of all the input GIF's frames to calculate the frame delay of the output GIF. When it is *false* (by default), the frame delay of the first frame of the input GIF is used as the delay for all of the ouput GIF's frames.
 
 # Known Bugs
-- Certain GIFs do not report the correct duration and/or frame delay, and so may not display correctly.
+- Certain GIFs do not report the correct duration and/or frame delay, and so may not display correctly, or may falsely trigger your duration limit
 - Does not support GIFs with a variable frame delay. Either the first frame's delay is used as the delay for the entire GIF, or the delays of all frames are averaged.
+
+# Contributors
+Please make every effort to adhere to the established code style.
+
+Global prerequesites (TypeScript, uglify, and npm-watch) can be installed by running:
+```
+npm run preinstall_global_deps
+```
+A file watcher can be started, after installing the prerequesites, by running:
+```
+npm run watch
+```
+Which will build *.ts* files in the *src* folder and put them in *reversomatic.js* in the *lib* folder.
+
+# Changelog
+*1.0.5 - December 30, 2017*
+- Code style updates and fixes
+- Fixed GIF duration calculation
+- Added max input GIF size (4th constructor argument)
+- Removed mangling option in uglify (to get descriptive argument names for Intellisense and similar)
+- README updates

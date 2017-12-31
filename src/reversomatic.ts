@@ -12,7 +12,8 @@ import { createReadStream,
          exists, 
          mkdirSync, 
          readFileSync,
-         mkdtemp 
+         mkdtemp,
+         statSync 
         } from 'fs'
 import { setTimeout } from 'timers';
 
@@ -35,9 +36,10 @@ interface GifReverseOptions {
 export class Reversomatic {
     private tempDirectory: string
     private outputDirectory: string
-    private maxDuration: number
+    private maxDurationInMilliseconds: number
+    private maxSizeInBytes: number
 
-    constructor(tempDirectory?: string, outputDirectory?: string, maxDuration: number = 30000) {
+    constructor(tempDirectory?: string, outputDirectory?: string, maxDurationInMilliseconds: number = 30000, maxSizeInMegabytes: number = 10) {
         if(tempDirectory) {
             this.tempDirectory = tempDirectory
         } else {
@@ -50,8 +52,8 @@ export class Reversomatic {
             this.outputDirectory = './output'
         }
 
-        this.maxDuration = maxDuration
-
+        this.maxDurationInMilliseconds  = maxDurationInMilliseconds
+        this.maxSizeInBytes             = maxSizeInMegabytes * 1000000
         this.verifyAndCreateDirs();
     }
 
@@ -66,30 +68,44 @@ export class Reversomatic {
                 return callback(err, null)
             }
 
-            const gifInfo = getInfo(gifFile)
+            const gifInfo   = getInfo(gifFile)
+            const fileInfo  = statSync(inputFilename)
 
             if(!gifInfo.valid) {
                 return callback(Error('Invalid GIF file.'), null)
             }
 
-            const gifDuration = gifInfo.duration
-            let gifFrameDelay = 0
-            
+            const gifImages         = gifInfo.images
+            const numFrames         = gifImages.length
+            const gifDuration       = gifInfo.duration
+            let finalDuration       = 0
+            const gifSizeInBytes    = fileInfo.size
+            let gifFrameDelay       = 0
+
+            if(gifDuration > this.maxDurationInMilliseconds) {
+                return callback(Error(`GIF duration longer than max duration.\n`
+                + `${ this.maxDurationInMilliseconds } ms.`), null)
+            }
+
+            if(this.maxSizeInBytes != 0 && fileInfo.size > this.maxSizeInBytes) {
+                return callback(Error(`Input GIF file size is larger than max file size.\n` 
+                + `Max Size: ${ this.maxSizeInBytes / 1000000 } MB\n` 
+                + `Actual Size: ${ fileInfo.size / 1000000 } MB`))
+            }
+
             if(options.averageFrameDelay) {
                 for(const img of gifInfo.images) {
                     gifFrameDelay += img.delay
                 }
 
-                gifFrameDelay = gifFrameDelay / gifInfo.images.length
+                gifFrameDelay = Math.floor(gifFrameDelay / numFrames)
+                finalDuration = gifFrameDelay * numFrames
             } else {
                 gifFrameDelay = gifInfo.images[0].delay
+                finalDuration = gifFrameDelay * numFrames
             }
 
-            if(gifDuration > this.maxDuration) {
-                return callback(Error(`GIF duration longer than max duration of ${ this.maxDuration } milliseconds.`), null)
-            }
-
-            let tempFolderPfx = join(this.tempDirectory, 'processGif')
+            const tempFolderPfx = join(this.tempDirectory, 'processGif')
             mkdtemp(tempFolderPfx, 'utf8', (err, folder) => {
                 if(err) return callback(Error(`Unable to create temporary directory for gif: ${ err.message }`), null)
 
@@ -109,7 +125,6 @@ export class Reversomatic {
                                 if(err) return callback(Error(`Unable to remove temporary folder ${ folder }.`), null)
 
                                 const fullPath = join(this.outputDirectory, outputFilename)
-
                                 return callback(null, new GifReverseResult(fullPath, gifFrameDelay, gifDuration))  
                             })
                         })
@@ -140,19 +155,19 @@ export class Reversomatic {
         return Math.log(frames.length) * Math.LOG10E + 1 | 0
     }
 
-    private chainProcessImages = (frames, index, filePrefix, callback) => {
+    private chainProcessImages (frames, index, filePrefix, callback) {
         if(index < 0) return callback()
         
         // ensure an appropriate number of padding digits are available 
         // for glob bulk read during gif reversal
-        const frameCountDigits = this.getFrameCountDigits(frames)
-        const paddingZeros: string = Array(frameCountDigits + 1).join('0')
+        const frameCountDigits      = this.getFrameCountDigits(frames)
 
-        const frameIndex = (paddingZeros + index).slice(-frameCountDigits)
-        const element = frames[frames.length - index - 1]
-        
-        const filename = `${ filePrefix }${ frameIndex }.png`
-        const wstr = createWriteStream(filename)
+        // number of 'padding zeroes' at end of temporary frame filenames (i.e. a GIF with 300 frames would need '000' to generate suitable frame filenames for the glob-powered GIF encoder)
+        const paddingZeros          = Array(frameCountDigits + 1).join('0')
+        const frameIndex            = (paddingZeros + index).slice(-frameCountDigits)
+        const element               = frames[frames.length - index - 1]
+        const filename              = `${ filePrefix }${ frameIndex }.png`
+        const wstr                  = createWriteStream(filename)
         
         // recursively process the next frame of the GIF
         wstr.on('finish', () => {

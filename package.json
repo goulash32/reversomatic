@@ -1,6 +1,6 @@
 {
   "name": "reversomatic",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "a utility for reversing gifs",
   "repository": {
     "type": "git",
@@ -8,12 +8,12 @@
   },
   "main": "index.js",
   "scripts": {
-    "preinstall_global_dev": "npm install -g tsc uglify npm-watch",
+    "preinstall_global_deps": "npm install -g typescript uglify npm-watch",
     "watch": "npm-watch",
     "src_update": "npm run build",
     "compiled": "npm run minify",
     "build": "tsc",
-    "minify": "uglifyjs src/*.js -o lib/*.js -cm"
+    "minify": "uglifyjs src/*.js -o lib/*.js -c"
   },
   "watch": {
     "src_update": {

@@ -10,36 +10,17 @@ var path_1 = require("path");
 var fs_1 = require("fs");
 var timers_1 = require("timers");
 var GifReverseResult = /** @class */ (function () {
-    function GifReverseResult(path, frameRate, duration) {
+    function GifReverseResult(path, frameDelay, duration) {
         this.path = path;
-        this.frameRate = frameRate;
+        this.frameDelay = frameDelay;
         this.duration = duration;
     }
     return GifReverseResult;
 }());
 var Reversomatic = /** @class */ (function () {
-    function Reversomatic(tempDirectory, outputDirectory, maxDuration) {
-        if (maxDuration === void 0) { maxDuration = 30000; }
-        var _this = this;
-        this.chainProcessImages = function (frames, index, filePrefix, callback) {
-            if (index < 0)
-                return callback();
-            // ensure an appropriate number of padding digits are available 
-            // for glob bulk read during gif reversal
-            var frameCountDigits = _this.getFrameCountDigits(frames);
-            var paddingZeros = Array(frameCountDigits + 1).join('0');
-            var frameIndex = (paddingZeros + index).slice(-frameCountDigits);
-            var element = frames[frames.length - index - 1];
-            var filename = "" + filePrefix + frameIndex + ".png";
-            var wstr = fs_1.createWriteStream(filename);
-            // recursively process the next frame of the GIF
-            wstr.on('finish', function () {
-                _this.chainProcessImages(frames, --index, filePrefix, callback);
-            });
-            wstr.on('open', function () {
-                element.getImage().pipe(wstr);
-            });
-        };
+    function Reversomatic(tempDirectory, outputDirectory, maxDurationInMilliseconds, maxSizeInMegabytes) {
+        if (maxDurationInMilliseconds === void 0) { maxDurationInMilliseconds = 30000; }
+        if (maxSizeInMegabytes === void 0) { maxSizeInMegabytes = 10; }
         if (tempDirectory) {
             this.tempDirectory = tempDirectory;
         }
@@ -52,7 +33,8 @@ var Reversomatic = /** @class */ (function () {
         else {
             this.outputDirectory = './output';
         }
-        this.maxDuration = maxDuration;
+        this.maxDurationInMilliseconds = maxDurationInMilliseconds;
+        this.maxSizeInBytes = maxSizeInMegabytes * 1000000;
         this.verifyAndCreateDirs();
     }
     Reversomatic.prototype.processGif = function (inputFilename, outputFilename, options, callback) {
@@ -66,23 +48,36 @@ var Reversomatic = /** @class */ (function () {
                 return callback(err, null);
             }
             var gifInfo = gify_parse_1.getInfo(gifFile);
+            var fileInfo = fs_1.statSync(inputFilename);
             if (!gifInfo.valid) {
                 return callback(Error('Invalid GIF file.'), null);
             }
+            var gifImages = gifInfo.images;
+            var numFrames = gifImages.length;
             var gifDuration = gifInfo.duration;
-            var gifFrameRate = 0;
+            var finalDuration = 0;
+            var gifSizeInBytes = fileInfo.size;
+            var gifFrameDelay = 0;
+            if (gifDuration > _this.maxDurationInMilliseconds) {
+                return callback(Error("GIF duration longer than max duration.\n"
+                    + (_this.maxDurationInMilliseconds + " ms.")), null);
+            }
+            if (_this.maxSizeInBytes != 0 && fileInfo.size > _this.maxSizeInBytes) {
+                return callback(Error("Input GIF file size is larger than max file size.\n"
+                    + ("Max Size: " + _this.maxSizeInBytes / 1000000 + " MB\n")
+                    + ("Actual Size: " + fileInfo.size / 1000000 + " MB")));
+            }
             if (options.averageFrameDelay) {
                 for (var _i = 0, _a = gifInfo.images; _i < _a.length; _i++) {
                     var img = _a[_i];
-                    gifFrameRate += img.delay;
+                    gifFrameDelay += img.delay;
                 }
-                gifFrameRate = gifFrameRate / gifInfo.images.length;
+                gifFrameDelay = Math.floor(gifFrameDelay / numFrames);
+                finalDuration = gifFrameDelay * numFrames;
             }
             else {
-                gifFrameRate = gifInfo.images[0].delay;
-            }
-            if (gifDuration > _this.maxDuration) {
-                return callback(Error("GIF duration longer than max duration of " + _this.maxDuration + " milliseconds."), null);
+                gifFrameDelay = gifInfo.images[0].delay;
+                finalDuration = gifFrameDelay * numFrames;
             }
             var tempFolderPfx = path_1.join(_this.tempDirectory, 'processGif');
             fs_1.mkdtemp(tempFolderPfx, 'utf8', function (err, folder) {
@@ -96,14 +91,14 @@ var Reversomatic = /** @class */ (function () {
                         // string of '?' chars for glob in pngFileStream
                         var globChars = Array(_this.getFrameCountDigits(frames) + 1).join('?');
                         pfs(imgPrefix + globChars + ".png")
-                            .pipe(encoder.createWriteStream({ delay: gifFrameRate, repeat: 0, quality: 100 }))
+                            .pipe(encoder.createWriteStream({ delay: gifFrameDelay, repeat: 0, quality: 100 }))
                             .pipe(ws);
                         ws.on('finish', function () {
                             rimraf(folder, function (err) {
                                 if (err)
                                     return callback(Error("Unable to remove temporary folder " + folder + "."), null);
                                 var fullPath = path_1.join(_this.outputDirectory, outputFilename);
-                                return callback(null, new GifReverseResult(fullPath, gifFrameRate, gifDuration));
+                                return callback(null, new GifReverseResult(fullPath, gifFrameDelay, gifDuration));
                             });
                         });
                         ws.on('error', function () {
@@ -130,6 +125,27 @@ var Reversomatic = /** @class */ (function () {
     };
     Reversomatic.prototype.getFrameCountDigits = function (frames) {
         return Math.log(frames.length) * Math.LOG10E + 1 | 0;
+    };
+    Reversomatic.prototype.chainProcessImages = function (frames, index, filePrefix, callback) {
+        var _this = this;
+        if (index < 0)
+            return callback();
+        // ensure an appropriate number of padding digits are available 
+        // for glob bulk read during gif reversal
+        var frameCountDigits = this.getFrameCountDigits(frames);
+        // number of 'padding zeroes' at end of temporary frame filenames (i.e. a GIF with 300 frames would need '000' to generate suitable frame filenames for the glob-powered GIF encoder)
+        var paddingZeros = Array(frameCountDigits + 1).join('0');
+        var frameIndex = (paddingZeros + index).slice(-frameCountDigits);
+        var element = frames[frames.length - index - 1];
+        var filename = "" + filePrefix + frameIndex + ".png";
+        var wstr = fs_1.createWriteStream(filename);
+        // recursively process the next frame of the GIF
+        wstr.on('finish', function () {
+            _this.chainProcessImages(frames, --index, filePrefix, callback);
+        });
+        wstr.on('open', function () {
+            element.getImage().pipe(wstr);
+        });
     };
     return Reversomatic;
 }());
