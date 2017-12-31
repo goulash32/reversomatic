@@ -1,6 +1,6 @@
 {
   "name": "reversomatic",
-  "version": "1.0.7d",
+  "version": "1.0.8",
   "description": "a utility for reversing gifs",
   "repository": {
     "type": "git",

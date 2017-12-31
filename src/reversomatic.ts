@@ -144,7 +144,7 @@ export class Reversomatic {
                                 const fullPath = join(this.outputDirectory, outputFilename)
                                 const processTime = stopwatch.getValue()
                                 
-                                return callback(null, new GifReverseResult(fullPath, gifFrameDelay, gifDuration,
+                                return callback(null, new GifReverseResult(fullPath, gifFrameDelay, finalDuration,
                                 processTime)) 
                             })
                         })

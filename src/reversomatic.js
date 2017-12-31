@@ -108,7 +108,7 @@ var Reversomatic = /** @class */ (function () {
                                     return callback(Error("Unable to remove temporary folder " + folder + "."), null);
                                 var fullPath = path_1.join(_this.outputDirectory, outputFilename);
                                 var processTime = stopwatch.getValue();
-                                return callback(null, new GifReverseResult(fullPath, gifFrameDelay, gifDuration, processTime));
+                                return callback(null, new GifReverseResult(fullPath, gifFrameDelay, finalDuration, processTime));
                             });
                         });
                         ws.on('error', function () {
