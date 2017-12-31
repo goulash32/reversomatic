@@ -3,34 +3,40 @@ import * as ge from 'gifencoder'
 import * as pfs from 'png-file-stream'
 import { getInfo } from 'gify-parse'
 
+import * as Stopwatch from 'elapsed-time'
+
 // for recursive cleaning of temp directories
 import * as rimraf from 'rimraf'
 
 import { join } from 'path'
 import { createReadStream, 
          createWriteStream, 
-         exists, 
+         exists,
          mkdirSync, 
          readFileSync,
          mkdtemp,
          statSync 
         } from 'fs'
 import { setTimeout } from 'timers';
+import { debug } from 'util';
 
 class GifReverseResult {
     path: string
     frameDelay: number
     duration: number
+    processTime: number
 
-    constructor(path: string, frameDelay: number, duration: number) {
-        this.path = path
-        this.frameDelay = frameDelay
-        this.duration = duration
+    constructor(path: string, frameDelay: number, duration: number, processTime: number) {
+        this.path           = path
+        this.frameDelay     = frameDelay
+        this.duration       = duration
+        this.processTime    = processTime
     }
 }
 
 interface GifReverseOptions {
     averageFrameDelay?: boolean
+    forcedFrameDelay?: number
 }
 
 export class Reversomatic {
@@ -39,7 +45,8 @@ export class Reversomatic {
     private maxDurationInMilliseconds: number
     private maxSizeInBytes: number
 
-    constructor(tempDirectory?: string, outputDirectory?: string, maxDurationInMilliseconds: number = 30000, maxSizeInMegabytes: number = 0) {
+    constructor(tempDirectory?: string, outputDirectory?: string, 
+    maxDurationInMilliseconds: number = 30000, maxSizeInMegabytes: number = 0) {
         if(tempDirectory) {
             this.tempDirectory = tempDirectory
         } else {
@@ -57,9 +64,15 @@ export class Reversomatic {
         this.verifyAndCreateDirs();
     }
 
-    processGif(inputFilename: string, outputFilename: string, options: GifReverseOptions, callback) {
+    processGif(inputFilename: string, outputFilename: string, 
+    options: GifReverseOptions, callback) {
         setTimeout( () => {
             let gifFile: Buffer
+
+            // time the process
+            const stopwatch = Stopwatch.new()
+
+            stopwatch.start()
 
             try {
                 gifFile = readFileSync(inputFilename)
@@ -99,17 +112,21 @@ export class Reversomatic {
                 }
 
                 gifFrameDelay = Math.floor(gifFrameDelay / numFrames)
-                finalDuration = gifFrameDelay * numFrames
-            } else {
+            } else if(options.forcedFrameDelay) {
+                gifFrameDelay = options.forcedFrameDelay
+            }
+            else {
                 gifFrameDelay = gifInfo.images[0].delay
-                finalDuration = gifFrameDelay * numFrames
             }
 
+            finalDuration = gifFrameDelay * numFrames
             const tempFolderPfx = join(this.tempDirectory, 'processGif')
             mkdtemp(tempFolderPfx, 'utf8', (err, folder) => {
-                if(err) return callback(Error(`Unable to create temporary directory for gif: ${ err.message }`), null)
+                if(err) return callback(Error(`Unable to create temporary `
+                +`directory for gif: ${ err.message }`), null)
 
-                gf({ url: inputFilename, frames: 'all', outputType: 'png', cumulative: true }).then(frames => {
+                gf({ url: inputFilename, frames: 'all', outputType: 'png', cumulative: true })
+                .then(frames => {
                     const imgPrefix = join(folder, 'image')
                     this.chainProcessImages(frames, frames.length - 1, imgPrefix, () => {
                         const encoder = new ge(gifInfo.width, gifInfo.height)
@@ -125,7 +142,10 @@ export class Reversomatic {
                                 if(err) return callback(Error(`Unable to remove temporary folder ${ folder }.`), null)
 
                                 const fullPath = join(this.outputDirectory, outputFilename)
-                                return callback(null, new GifReverseResult(fullPath, gifFrameDelay, gifDuration))  
+                                const processTime = stopwatch.getValue()
+                                
+                                return callback(null, new GifReverseResult(fullPath, gifFrameDelay, gifDuration,
+                                processTime)) 
                             })
                         })
                         ws.on('error', () => {

@@ -4,16 +4,18 @@ var gf = require("gif-frames");
 var ge = require("gifencoder");
 var pfs = require("png-file-stream");
 var gify_parse_1 = require("gify-parse");
+var Stopwatch = require("elapsed-time");
 // for recursive cleaning of temp directories
 var rimraf = require("rimraf");
 var path_1 = require("path");
 var fs_1 = require("fs");
 var timers_1 = require("timers");
 var GifReverseResult = /** @class */ (function () {
-    function GifReverseResult(path, frameDelay, duration) {
+    function GifReverseResult(path, frameDelay, duration, processTime) {
         this.path = path;
         this.frameDelay = frameDelay;
         this.duration = duration;
+        this.processTime = processTime;
     }
     return GifReverseResult;
 }());
@@ -41,6 +43,9 @@ var Reversomatic = /** @class */ (function () {
         var _this = this;
         timers_1.setTimeout(function () {
             var gifFile;
+            // time the process
+            var stopwatch = Stopwatch.new();
+            stopwatch.start();
             try {
                 gifFile = fs_1.readFileSync(inputFilename);
             }
@@ -79,11 +84,15 @@ var Reversomatic = /** @class */ (function () {
                 gifFrameDelay = gifInfo.images[0].delay;
                 finalDuration = gifFrameDelay * numFrames;
             }
+            if (options.forcedFrameDelay) {
+            }
             var tempFolderPfx = path_1.join(_this.tempDirectory, 'processGif');
             fs_1.mkdtemp(tempFolderPfx, 'utf8', function (err, folder) {
                 if (err)
-                    return callback(Error("Unable to create temporary directory for gif: " + err.message), null);
-                gf({ url: inputFilename, frames: 'all', outputType: 'png', cumulative: true }).then(function (frames) {
+                    return callback(Error("Unable to create temporary "
+                        + ("directory for gif: " + err.message)), null);
+                gf({ url: inputFilename, frames: 'all', outputType: 'png', cumulative: true })
+                    .then(function (frames) {
                     var imgPrefix = path_1.join(folder, 'image');
                     _this.chainProcessImages(frames, frames.length - 1, imgPrefix, function () {
                         var encoder = new ge(gifInfo.width, gifInfo.height);
@@ -98,7 +107,8 @@ var Reversomatic = /** @class */ (function () {
                                 if (err)
                                     return callback(Error("Unable to remove temporary folder " + folder + "."), null);
                                 var fullPath = path_1.join(_this.outputDirectory, outputFilename);
-                                return callback(null, new GifReverseResult(fullPath, gifFrameDelay, gifDuration));
+                                var processTime = stopwatch.getValue();
+                                return callback(null, new GifReverseResult(fullPath, gifFrameDelay, gifDuration, processTime));
                             });
                         });
                         ws.on('error', function () {

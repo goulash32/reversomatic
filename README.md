@@ -15,10 +15,10 @@ var ro = new Reversomatic('./', './out', 30000, 25)
 // reverses a GIF file with arguments:
 // Input File: image.gif
 // Output File: image-reversed.gif (in the ./out folder)
-// Options: empty
+// Options: forcedFrameDelay: 90 (milliseconds)
 // Callback: Provides any errors, if applicable, and gifInfo, which contains the GIF's relative path,
-// duration and frame delay (both in milliseconds)
-ro.processGif('image.gif', 'image-reversed.gif', {}, (err, gifInfo) => {
+// duration and frame delay (which are both in milliseconds)
+ro.processGif('image.gif', 'image-reversed.gif', { forcedFrameDelay: 90 }, (err, gifInfo) => {
     if(err) throw err
     console.log(gifInfo.path, gifInfo.duration, gifInfo.frameDelay)
 })
@@ -30,9 +30,19 @@ Reversomatic will create a temporary folder, inside the specified temp directory
 Every call to *processGif()* runs asynchronously, and neither performs disk space checks nor keeps a 'thread pool' or similar mechanism. The responsibility falls to the user to ensure that usage is kept to within available system resources.
 
 # *processGif()* Options
-Presently, the only option available is *"averageFrameDelay"* which, when set to *true*, averages the delays of all the input GIF's frames to calculate the frame delay of the output GIF. When it is *false* (by default), the frame delay of the first frame of the input GIF is used as the delay for all of the ouput GIF's frames.
+```typescript
+averageFrameDelay: boolean
+```
+<blockquote>Reversomatic will average the delay of each of the input GIF's frames to determine the output GIF's frame delay rate if *averageFrameDelay* is *true*. *averageFrameDelay takes precedence over all other delay settings if enabled*.</blockquote>
 
-# Known Bugs
+```typescript
+forcedFrameDelay: number
+```
+<blockquote>Reversomatic will floor the value provided in *forcedFrameDelay* and use it as the constant frame delay in the output GIF.</blockquote>
+
+If neither of the above options are set, Reversomatic will use the input GIF's first frame delay to determine the output GIF's constant frame delay.
+
+# Known Bugs & Limitations
 - Certain GIFs do not report the correct duration and/or frame delay, and so may not display correctly, or may falsely trigger your duration limit
 - Does not support GIFs with a variable frame delay. Either the first frame's delay is used as the delay for the entire GIF, or the delays of all frames are averaged.
 
@@ -50,12 +60,13 @@ npm run watch
 Which will build *.ts* files in the *src* folder and put them in *reversomatic.js* in the *lib* folder.
 
 # Changelog
-
+*1.0.7 - December 31, 2017*
+- Added additional option, *forcedFrameDelay*, to *processGif()* options
+- README updates
 
 *1.0.6 & 1.0.6b - December 30, 2017*
 - Made unlimited input file size the default so as not to cause any surprises
 - README updates
-
 
 *1.0.5 - December 30, 2017*
 - Code style updates and fixes
