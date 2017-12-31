@@ -33,12 +33,12 @@ Every call to *processGif()* runs asynchronously, and neither performs disk spac
 ```typescript
 averageFrameDelay: boolean
 ```
-<blockquote>Reversomatic will average the delay of each of the input GIF's frames to determine the output GIF's frame delay rate if *averageFrameDelay* is *true*. *averageFrameDelay takes precedence over all other delay settings if enabled*.</blockquote>
+<blockquote>Reversomatic will average the delay of each of the input GIF's frames to determine the output GIF's frame delay rate if <em>averageFrameDelay</em> is <em>true</em>. <em>averageFrameDelay takes precedence over all other delay settings if enabled</em>.</blockquote>
 
 ```typescript
 forcedFrameDelay: number
 ```
-<blockquote>Reversomatic will floor the value provided in *forcedFrameDelay* and use it as the constant frame delay in the output GIF.</blockquote>
+<blockquote>Reversomatic will floor the value provided in <em>forcedFrameDelay</em> and use it as the constant frame delay in the output GIF.</blockquote>
 
 If neither of the above options are set, Reversomatic will use the input GIF's first frame delay to determine the output GIF's constant frame delay.
 
@@ -60,7 +60,7 @@ npm run watch
 Which will build *.ts* files in the *src* folder and put them in *reversomatic.js* in the *lib* folder.
 
 # Changelog
-*1.0.7 - December 31, 2017*
+*1.0.7 & 1.0.7b - December 31, 2017*
 - Added additional option, *forcedFrameDelay*, to *processGif()* options
 - README updates
 
