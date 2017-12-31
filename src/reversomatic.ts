@@ -113,7 +113,7 @@ export class Reversomatic {
 
                 gifFrameDelay = Math.floor(gifFrameDelay / numFrames)
             } else if(options.forcedFrameDelay) {
-                gifFrameDelay = options.forcedFrameDelay
+                gifFrameDelay = Math.floor(options.forcedFrameDelay)
             }
             else {
                 gifFrameDelay = gifInfo.images[0].delay

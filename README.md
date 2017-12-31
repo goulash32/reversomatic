@@ -60,8 +60,9 @@ npm run watch
 Which will build *.ts* files in the *src* folder and put them in *reversomatic.js* in the *lib* folder.
 
 # Changelog
-*1.0.8 - December 31, 2017*
+*1.0.8 & 1.0.8b - December 31, 2017*
 - *processGif()* now returns **correct** output GIF duration
+- (b) Values provided in the *forcedFrameDelay* option are now converted to floored integers before processing begins
 - README updates
 
 *1.0.7 & 1.0.7b/c/d - December 31, 2017*
