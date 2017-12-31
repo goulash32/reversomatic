@@ -50,6 +50,13 @@ npm run watch
 Which will build *.ts* files in the *src* folder and put them in *reversomatic.js* in the *lib* folder.
 
 # Changelog
+
+
+*1.0.6 & 1.0.6b - December 30, 2017*
+- Made unlimited input file size the default so as not to cause any surprises
+- README updates
+
+
 *1.0.5 - December 30, 2017*
 - Code style updates and fixes
 - Fixed GIF duration calculation
