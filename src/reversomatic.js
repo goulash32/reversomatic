@@ -78,14 +78,14 @@ var Reversomatic = /** @class */ (function () {
                     gifFrameDelay += img.delay;
                 }
                 gifFrameDelay = Math.floor(gifFrameDelay / numFrames);
-                finalDuration = gifFrameDelay * numFrames;
+            }
+            else if (options.forcedFrameDelay) {
+                gifFrameDelay = options.forcedFrameDelay;
             }
             else {
                 gifFrameDelay = gifInfo.images[0].delay;
-                finalDuration = gifFrameDelay * numFrames;
             }
-            if (options.forcedFrameDelay) {
-            }
+            finalDuration = gifFrameDelay * numFrames;
             var tempFolderPfx = path_1.join(_this.tempDirectory, 'processGif');
             fs_1.mkdtemp(tempFolderPfx, 'utf8', function (err, folder) {
                 if (err)

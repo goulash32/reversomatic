@@ -60,9 +60,10 @@ npm run watch
 Which will build *.ts* files in the *src* folder and put them in *reversomatic.js* in the *lib* folder.
 
 # Changelog
-*1.0.7 & 1.0.7b/c - December 31, 2017*
+*1.0.7 & 1.0.7b/c/d - December 31, 2017*
 - Added additional option, *forcedFrameDelay*, to *processGif()* options
-- Removed unnecessary dependencies
+- (c) Removed unnecessary dependencies
+- (d) Remembered to actually build ;)
 - README updates
 
 *1.0.6 & 1.0.6b - December 30, 2017*
