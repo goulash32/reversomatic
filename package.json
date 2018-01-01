@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@types/node": "^8.5.2",
+    "eslint": "^4.14.0",
     "npm-watch": "^0.3.0",
     "uglify-js": "^3.3.3"
   }
