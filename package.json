@@ -38,7 +38,7 @@
   "readme": "README.md",
   "dependencies": {
     "elapsed-time": "0.0.1",
-    "gif-frames": "^0.4.0",
+    "gif-frames": "^1.0.1",
     "gifencoder": "^1.1.0",
     "gify-parse": "^1.0.7",
     "png-file-stream": "^1.0.0",
@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "@types/node": "^8.5.2",
-    "eslint": "^4.14.0",
+    "eslint": "^9.17.0",
     "npm-watch": "^0.3.0",
     "uglify-js": "^3.3.3"
   }
